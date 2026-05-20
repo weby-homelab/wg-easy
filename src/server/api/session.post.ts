@@ -1,4 +1,5 @@
 import { UserLoginSchema } from '#db/repositories/user/types';
+import { getRequestIP } from 'h3';
 
 export default defineEventHandler(async (event) => {
   const { username, password, remember, totpCode } = await readValidatedBody(
@@ -6,11 +7,16 @@ export default defineEventHandler(async (event) => {
     validateZod(UserLoginSchema, event)
   );
 
+  const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown';
+
   const result = await Database.users.login(username, password, totpCode);
 
   // TODO: add localization support
 
   if (!result.success) {
+    console.warn(
+      `[SECURITY AUDIT] Failed login attempt: ${result.error} for user "${username}". IP: ${ip}`
+    );
     switch (result.error) {
       case 'INCORRECT_CREDENTIALS':
         throw createError({
@@ -46,6 +52,10 @@ export default defineEventHandler(async (event) => {
   // TODO?: create audit log
 
   SERVER_DEBUG(`New Session: ${data.id} for ${user.id} (${user.username})`);
+
+  console.log(
+    `[SECURITY AUDIT] Successful login for user "${user.username}". IP: ${ip}`
+  );
 
   return { status: 'success' };
 });
