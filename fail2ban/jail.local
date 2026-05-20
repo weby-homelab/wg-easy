@@ -1,0 +1,16 @@
+# Example Fail2Ban jail configuration for wg-easy
+# Copy or append this to your /etc/fail2ban/jail.d/wg-easy.local
+#
+
+[wg-easy]
+enabled  = true
+port     = 51821
+filter   = wg-easy
+# Path to your wg-easy docker container logs or redirected log file
+logpath  = /var/lib/docker/containers/*/*.log
+maxretry = 5
+findtime = 600
+bantime  = 3600
+# If your wg-easy logs JSON format from Docker, Fail2Ban can parse it with appropriate settings
+# or you can use systemd journal:
+# journalmatch = CONTAINER_NAME=wg-easy

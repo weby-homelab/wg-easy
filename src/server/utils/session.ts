@@ -1,4 +1,5 @@
 import type { H3Event } from 'h3';
+import { getRequestIP } from 'h3';
 import type { UserType } from '#db/repositories/user/types';
 
 export type WGSession = Partial<{
@@ -72,9 +73,13 @@ export async function getCurrentUser(event: H3Event) {
 
     // TODO: timing can be used to enumerate usernames
 
+    const ip = getRequestIP(event, { xForwardedFor: true }) || 'unknown';
     const foundUser = await Database.users.getByUsername(username);
 
     if (!foundUser) {
+      console.warn(
+        `[SECURITY AUDIT] Failed login attempt: INCORRECT_CREDENTIALS for user "${username}" via basic auth. IP: ${ip}`
+      );
       throw createError({
         statusCode: 401,
         statusMessage: 'Session failed',
@@ -85,6 +90,9 @@ export async function getCurrentUser(event: H3Event) {
     const passwordValid = await isPasswordValid(password, userHashPassword);
 
     if (!passwordValid) {
+      console.warn(
+        `[SECURITY AUDIT] Failed login attempt: INCORRECT_CREDENTIALS for user "${username}" via basic auth. IP: ${ip}`
+      );
       throw createError({
         statusCode: 401,
         statusMessage: 'Session failed',
